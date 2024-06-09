@@ -35,7 +35,7 @@ e :=
   | if e0 then e1 else e2  -- Conditional
   
   -- Numeric fundamental ops
-  | succ(e) | pred(e)      -- +1, -1
+  | succ(e) | pred(e)      -- +1 and -1
   | e1 + e2                -- Sum
   | e1 == e2               -- Equal?
   | zero?(e)               -- Is zero?
