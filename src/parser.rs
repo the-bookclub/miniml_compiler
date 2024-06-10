@@ -7,7 +7,7 @@ use nom::sequence::pair;
 use nom::IResult;
 use nom::Parser;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 enum Expression {
     True,
     False,
@@ -29,19 +29,18 @@ enum Expression {
     Cons(Box<Expression>, Box<Expression>),
     And(Box<Expression>, Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
-    Apply(Box<Expression>, Box<Expression>)
+    Apply(Box<Expression>, Box<Expression>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 struct Variable {
-    ident: String
+    ident: String,
 }
 
-
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 struct Definition {
     name: Variable,
-    value: Box<Expression>
+    value: Box<Expression>,
 }
 
 fn parser(input: &str) -> IResult<&str, Expression> {
@@ -55,7 +54,9 @@ fn parse_variable(input: &str) -> IResult<&str, Variable> {
         many0_count(alt((alphanumeric1, tag("_")))),
     ))
     .parse(input)?;
-    let v = Variable { ident: s.to_string() };
+    let v = Variable {
+        ident: s.to_string(),
+    };
     Ok((remainder, v))
 }
 
@@ -66,7 +67,10 @@ fn parse_e_variable(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_bool(input: &str) -> IResult<&str, Expression> {
-    alt((value(Expression::True, tag("true")), value(Expression::False, tag("false"))))(input)
+    alt((
+        value(Expression::True, tag("true")),
+        value(Expression::False, tag("false")),
+    ))(input)
 }
 
 fn parse_num(input: &str) -> IResult<&str, Expression> {
@@ -93,7 +97,10 @@ fn parse_def(input: &str) -> IResult<&str, Definition> {
     let (remainder, var) = parse_variable(input)?;
     let (remainder, _) = tag("=")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
-    let def = Definition { name: var, value: Box::new(e)};
+    let def = Definition {
+        name: var,
+        value: Box::new(e),
+    };
     Ok((remainder, def))
 }
 
@@ -290,4 +297,20 @@ fn parse_e_top_bracket(input: &str) -> IResult<&str, Expression> {
 
 fn parse_e_top(input: &str) -> IResult<&str, Expression> {
     alt((parse_e_top_bracket, parse_e_zeroth))(input)
+}
+
+#[test]
+fn test_num() {
+    assert_eq!(parse_num("1"), Ok(("", Expression::Num(1))));
+}
+
+#[test]
+fn test_add() {
+    assert_eq!(
+        parse_add("1+2"),
+        Ok((
+            "",
+            Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+        ))
+    );
 }
