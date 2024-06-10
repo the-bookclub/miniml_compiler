@@ -11,25 +11,25 @@ use nom::Parser;
 enum Expression {
     True,
     False,
-    Num(i32),
+    Num(u32),
     Var(Variable),
     Nil,
-    Let(Definition, Expression),
-    Not(Expression),
-    If(Expression, Expression, Expression),
-    Succ(Expression),
-    Pred(Expression),
-    Fst(Expression),
-    Snd(Expression),
-    Hd(Expression),
-    Tl(Expression),
-    Pair(Expression, Expression),
-    Fn(Variable, Expression),
-    Eq(Expression, Expression),
-    Cons(Expression, Expression),
-    And(Expression, Expression),
-    Add(Expression, Expression),
-    Apply(Expression, Expression)
+    Let(Definition, Box<Expression>),
+    Not(Box<Expression>),
+    If(Box<Expression>, Box<Expression>, Box<Expression>),
+    Succ(Box<Expression>),
+    Pred(Box<Expression>),
+    Fst(Box<Expression>),
+    Snd(Box<Expression>),
+    Hd(Box<Expression>),
+    Tl(Box<Expression>),
+    Pair(Box<Expression>, Box<Expression>),
+    Fn(Variable, Box<Expression>),
+    Eq(Box<Expression>, Box<Expression>),
+    Cons(Box<Expression>, Box<Expression>),
+    And(Box<Expression>, Box<Expression>),
+    Add(Box<Expression>, Box<Expression>),
+    Apply(Box<Expression>, Box<Expression>)
 }
 
 #[derive(Clone)]
@@ -41,7 +41,7 @@ struct Variable {
 #[derive(Clone)]
 struct Definition {
     name: Variable,
-    value: Expression
+    value: Box<Expression>
 }
 
 fn parser(input: &str) -> IResult<&str, Expression> {
@@ -70,7 +70,10 @@ fn parse_bool(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_num(input: &str) -> IResult<&str, Expression> {
-    digit1(input)
+    let (remainder, num) = digit1(input)?;
+    let n: u32 = num.parse().unwrap();
+    let e = Expression::Num(n);
+    Ok((remainder, e))
 }
 
 fn parse_nil(input: &str) -> IResult<&str, Expression> {
@@ -82,7 +85,7 @@ fn parse_let(input: &str) -> IResult<&str, Expression> {
     let (remainder, def) = parse_def(remainder)?;
     let (remainder, _) = tag("in")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
-    let l = Expression::Let(def, e);
+    let l = Expression::Let(def, Box::new(e));
     Ok((remainder, l))
 }
 
@@ -90,7 +93,7 @@ fn parse_def(input: &str) -> IResult<&str, Definition> {
     let (remainder, var) = parse_variable(input)?;
     let (remainder, _) = tag("=")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
-    let def = Definition { name: var, value: e};
+    let def = Definition { name: var, value: Box::new(e)};
     Ok((remainder, def))
 }
 
@@ -99,7 +102,7 @@ fn parse_not(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let n = Expression::Not(e);
+    let n = Expression::Not(Box::new(e));
     Ok((remainder, n))
 }
 
@@ -110,7 +113,7 @@ fn parse_if(input: &str) -> IResult<&str, Expression> {
     let (remainder, e_true) = parse_e_top(remainder)?;
     let (remainder, _) = tag("else")(remainder)?;
     let (remainder, e_false) = parse_e_top(remainder)?;
-    let i = Expression::If(cond, e_true, e_false);
+    let i = Expression::If(Box::new(cond), Box::new(e_true), Box::new(e_false));
     Ok((remainder, i))
 }
 
@@ -119,7 +122,7 @@ fn parse_succ(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let s = Expression::Succ(e);
+    let s = Expression::Succ(Box::new(e));
     Ok((remainder, s))
 }
 
@@ -129,7 +132,7 @@ fn parse_pair(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag(",")(remainder)?;
     let (remainder, e2) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let p = Expression::Pair(e1, e2);
+    let p = Expression::Pair(Box::new(e1), Box::new(e2));
     Ok((remainder, p))
 }
 
@@ -138,7 +141,7 @@ fn parse_fst(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let f = Expression::Fst(e);
+    let f = Expression::Fst(Box::new(e));
     Ok((remainder, f))
 }
 
@@ -147,7 +150,7 @@ fn parse_snd(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let f = Expression::Snd(e);
+    let f = Expression::Snd(Box::new(e));
     Ok((remainder, f))
 }
 
@@ -156,7 +159,7 @@ fn parse_hd(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let h = Expression::Hd(e);
+    let h = Expression::Hd(Box::new(e));
     Ok((remainder, h))
 }
 
@@ -165,7 +168,7 @@ fn parse_tl(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let t = Expression::Tl(e);
+    let t = Expression::Tl(Box::new(e));
     Ok((remainder, t))
 }
 
@@ -174,7 +177,7 @@ fn parse_pred(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let p = Expression::Succ(e);
+    let p = Expression::Succ(Box::new(e));
     Ok((remainder, p))
 }
 
@@ -202,7 +205,7 @@ fn parse_fn(input: &str) -> IResult<&str, Expression> {
     let (remainder, v) = parse_variable(remainder)?;
     let (remainder, _) = tag(".")(remainder)?;
     let (remainder, e) = parse_e_top(remainder)?;
-    let f = Expression::Fn(v, e);
+    let f = Expression::Fn(v, Box::new(e));
     Ok((remainder, f))
 }
 
@@ -214,7 +217,7 @@ fn parse_eq(input: &str) -> IResult<&str, Expression> {
     let (remainder, e1) = parse_e_top(input)?;
     let (remainder, _) = tag("==")(remainder)?;
     let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::Eq(e1, e2);
+    let eq = Expression::Eq(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
 
@@ -226,7 +229,7 @@ fn parse_cons(input: &str) -> IResult<&str, Expression> {
     let (remainder, e1) = parse_e_top(input)?;
     let (remainder, _) = tag("::")(remainder)?;
     let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::Cons(e1, e2);
+    let eq = Expression::Cons(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
 
@@ -238,7 +241,7 @@ fn parse_and(input: &str) -> IResult<&str, Expression> {
     let (remainder, e1) = parse_e_top(input)?;
     let (remainder, _) = tag("and")(remainder)?;
     let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::And(e1, e2);
+    let eq = Expression::And(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
 
@@ -250,7 +253,7 @@ fn parse_add(input: &str) -> IResult<&str, Expression> {
     let (remainder, e1) = parse_e_top(input)?;
     let (remainder, _) = tag("+")(remainder)?;
     let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::Add(e1, e2);
+    let eq = Expression::Add(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
 
@@ -263,14 +266,14 @@ fn parse_apply_1(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("(")(remainder)?;
     let (remainder, e2) = parse_e_top(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
-    let a = Expression::Apply(e1, e2);
+    let a = Expression::Apply(Box::new(e1), Box::new(e2));
     Ok((remainder, a))
 }
 
 fn parse_apply_2(input: &str) -> IResult<&str, Expression> {
     let (remainder, e1) = parse_e_top(input)?;
     let (remainder, e2) = parse_e_top(remainder)?;
-    let a = Expression::Apply(e1, e2);
+    let a = Expression::Apply(Box::new(e1), Box::new(e2));
     Ok((remainder, a))
 }
 
