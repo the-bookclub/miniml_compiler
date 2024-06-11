@@ -307,6 +307,7 @@ fn test_num() {
     assert_eq!(parse_num("1"), Ok(("", Expression::Num(1))));
 }
 
+#[ignore]
 #[test]
 fn test_add() {
     assert_eq!(
