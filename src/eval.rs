@@ -54,12 +54,6 @@ fn eval_under(e: &Expression, ctx: &Context) -> Result<Expression, &'static str>
             _ => Err("And applied to non-boolean condition.")
         }
 
-        Or(left, right) => match eval_under(left, ctx)? {
-            True => Ok(True),
-            False => eval_under(right, ctx),
-            _ => Err("Or applied to non-boolean condition.")
-        }
-
         _ => todo!()
     }
 }
@@ -87,21 +81,6 @@ fn test_eval_basic_and() {
     assert_eq!(eval(&expr), Ok(False));
 
     let expr = And(bTrue(), bTrue());
-    assert_eq!(eval(&expr), Ok(True));
-}
-
-#[test]
-fn test_eval_basic_or() {
-    let expr = Or(bFalse(), bFalse());
-    assert_eq!(eval(&expr), Ok(False));
-
-    let expr = Or(bFalse(), bTrue());
-    assert_eq!(eval(&expr), Ok(True));
-
-    let expr = Or(bTrue(), bFalse());
-    assert_eq!(eval(&expr), Ok(True));
-
-    let expr = Or(bTrue(), bTrue());
     assert_eq!(eval(&expr), Ok(True));
 }
 

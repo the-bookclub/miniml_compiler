@@ -29,7 +29,6 @@ pub enum Expression {
     Cons(Box<Expression>, Box<Expression>),
 
     And(Box<Expression>, Box<Expression>),
-    Or(Box<Expression>, Box<Expression>),
 
     Add(Box<Expression>, Box<Expression>),
     Apply(Box<Expression>, Box<Expression>),
