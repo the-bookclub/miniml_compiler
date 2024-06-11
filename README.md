@@ -88,7 +88,7 @@ See [the sample definition of recursive Fibonacci](./examples/fib.ml).
 
 ### Recursive bindings with letrec 
 
-## Yacc grammar
+## Agreed Grammar
 
 ```
 e_top    := (e_top)
@@ -123,4 +123,5 @@ e_null   := x
 
 x = [a-zA-Z_][a-zA-Z1-9]*
 c_bool = true | false
-c_num = [0-9]+```
+c_num = [0-9]+
+```
