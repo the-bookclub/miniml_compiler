@@ -109,7 +109,7 @@ e_fifth  := fn x . e
 e_null   := x
           | c_bool
           | c_num
-          | let d in e_top
+          | let x = e_top in e_top
           | not(e_top)
           | if e_top then e_top else e_top
           | succ(e_top)
