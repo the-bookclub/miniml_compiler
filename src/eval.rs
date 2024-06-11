@@ -9,16 +9,16 @@ use parser::Definition;
 use parser::Variable;
 use std::collections::HashMap;
 
-//! Contexts represent value environments.
-//! e.g. those introduced by `let x = e1 in e2`, or by applications.
+/// Contexts represent value environments.
+/// e.g. those introduced by `let x = e1 in e2`, or by applications.
 type Context = HashMap<Variable, Expression>;
 
-//! Evaluate under an empty context.
+/// Evaluate under an empty context.
 fn eval(e: &Expression) -> Result<Expression, &'static str> {
     return eval_under(e, &Context::new());
 }
 
-//! Evaluate with a given context.
+/// Evaluate with a given context.
 fn eval_under(e: &Expression, ctx: &Context) -> Result<Expression, &'static str> {
     match e {
         True => Ok(True),
