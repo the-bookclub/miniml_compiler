@@ -78,35 +78,36 @@ s := forall a . t
 ## Agreed Grammar
 
 ```
-e_top    := (e_top)
-          | e_zeroth
-e_zeroth := e_top (e_top)
-          | e_top e_top
-          | e_first
-e_first  := e_top + e_top
-          | e_second
-e_second := e_top and e_top
-          | e_third
-e_third  := e_top :: e_top
-          | e_fourth
-e_fourth := e_top == e_top
-          | e_fifth
-e_fifth  := fn x . e_top
-          | e_null
-e_null   := x
-          | c_bool
-          | c_num
-          | let x = e_top in e_top
-          | not(e_top)
-          | if e_top then e_top else e_top
-          | succ(e_top)
-          | <e_top,e_top>
-          | fst(e_top)
-          | snd(e_top)
-          | nil
-          | hd(e_top)
-          | tl(e_top)
-          | pred(e_top)
+e_top        := (e_top)
+              | e_zeroth
+e_zeroth     := e_top e_zeroth_arg
+              | e_first
+e_zeroth_arg := (e_top)
+              | e_top
+e_first      := e_top + e_top
+              | e_second
+e_second     := e_top and e_top
+              | e_third
+e_third      := e_top :: e_top
+              | e_fourth
+e_fourth     := e_top == e_top
+              | e_fifth
+e_fifth      := fn x . e_top
+              | e_null
+e_null       := x
+              | c_bool
+              | c_num
+              | let x = e_top in e_top
+              | not(e_top)
+              | if e_top then e_top else e_top
+              | succ(e_top)
+              | <e_top,e_top>
+              | fst(e_top)
+              | snd(e_top)
+              | nil
+              | hd(e_top)
+              | tl(e_top)
+              | pred(e_top)
 
 x = [a-zA-Z_][a-zA-Z1-9]*
 c_bool = true | false
