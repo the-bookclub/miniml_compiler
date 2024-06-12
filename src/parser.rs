@@ -14,7 +14,7 @@ pub enum Expression {
     Num(u32),
     Var(Variable),
     Nil,
-    Let(Definition, Box<Expression>),
+    Let(Variable, Box<Expression>, Box<Expression>),
     Not(Box<Expression>),
     If(Box<Expression>, Box<Expression>, Box<Expression>),
     Succ(Box<Expression>),
@@ -37,12 +37,6 @@ pub enum Expression {
 #[derive(Clone, PartialEq, Debug, Eq, Hash)]
 pub struct Variable {
     pub ident: String,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct Definition {
-    pub name: Variable,
-    pub value: Box<Expression>,
 }
 
 fn parser(input: &str) -> IResult<&str, Expression> {
@@ -88,22 +82,13 @@ fn parse_nil(input: &str) -> IResult<&str, Expression> {
 
 fn parse_let(input: &str) -> IResult<&str, Expression> {
     let (remainder, _) = tag("let")(input)?;
-    let (remainder, def) = parse_def(remainder)?;
-    let (remainder, _) = tag("in")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let l = Expression::Let(def, Box::new(e));
-    Ok((remainder, l))
-}
-
-fn parse_def(input: &str) -> IResult<&str, Definition> {
     let (remainder, var) = parse_variable(input)?;
     let (remainder, _) = tag("=")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let def = Definition {
-        name: var,
-        value: Box::new(e),
-    };
-    Ok((remainder, def))
+    let (remainder, e1) = parse_e_top(remainder)?;
+    let (remainder, _) = tag("in")(remainder)?;
+    let (remainder, e2) = parse_e_top(remainder)?;
+    let l = Expression::Let(var, Box::new(e1), Box::new(e2));
+    Ok((remainder, l))
 }
 
 fn parse_not(input: &str) -> IResult<&str, Expression> {

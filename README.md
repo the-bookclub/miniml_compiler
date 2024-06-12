@@ -28,6 +28,10 @@ e :=
   | let x = e1 in e2       -- Let bindings.
   | fn x . e               -- Functions (a.k.a. abstractions)
 
+  -- Application
+  | e1 e2                  -- Juxtaposition
+  | e1 (e2)                -- Explicit
+
   -- Boolean fundamental ops
   | e1 and e2              -- Conjunction
   | not(e1)                -- Negation
@@ -71,23 +75,6 @@ Type schemes occur when implicit polymorphism is required by `let` bindings.
 s := forall a . t
 ```
 
-
-## Stretch goals
-
-### Recursion 
-In a general enough implementation, recursion would 'fall out' using the Y combinator.
-
-However, it might be best (simpler, more performant, more ergonomic) to introduce the `mu` binder.
-
-Based on the `mu` or Y binder [in
-PCF](https://en.wikipedia.org/wiki/Programming_Computable_Functions#Semantics),
-`mu` is akin to `fn`, but introduces an abstraction that, when called, recurses
-into the body of the `mu` binding.
-
-See [the sample definition of recursive Fibonacci](./examples/fib.ml).
-
-### Recursive bindings with letrec 
-
 ## Agreed Grammar
 
 ```
@@ -109,7 +96,7 @@ e_fifth  := fn x . e
 e_null   := x
           | c_bool
           | c_num
-          | let d in e_top
+          | let x = e_top in e_top
           | not(e_top)
           | if e_top then e_top else e_top
           | succ(e_top)
@@ -125,3 +112,22 @@ x = [a-zA-Z_][a-zA-Z1-9]*
 c_bool = true | false
 c_num = [0-9]+
 ```
+
+## Stretch goals
+
+### Recursion 
+In a general enough implementation, recursion would 'fall out' using the Y combinator.
+
+However, it might be best (simpler, more performant, more ergonomic) to introduce the `mu` binder.
+
+Based on the `mu` or Y binder [in
+PCF](https://en.wikipedia.org/wiki/Programming_Computable_Functions#Semantics),
+`mu` is akin to `fn`, but introduces an abstraction that, when called, recurses
+into the body of the `mu` binding.
+
+See [the sample definition of recursive Fibonacci](./examples/fib.ml).
+
+### Recursive bindings with letrec
+
+Introduce a new keyword `letrec`, which has the same structure as `let`, but allows self-referential use of the bound variable in its definition.
+
