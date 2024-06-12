@@ -6,29 +6,48 @@ e_top = {
 }
 
 e_zeroth = {
-      e_zeroth ~ "(" ~ e_first ~ ")"
-    | e_zeroth ~ e_first
-    | e_first 
+    e_first ~ e_zeroth_prime
+}
+
+e_zeroth_prime = _{
+    (e_zeroth_param ~ e_zeroth_prime)?
+}
+
+e_zeroth_param = {
+      "(" ~ e_first ~ ")"
+    | e_first
 }
 
 e_first = {
-      e_first ~ "+" ~ e_second
-    | e_second
+    e_second ~ e_first_prime
+}
+
+e_first_prime = _{
+    ("+" ~ e_second ~ e_first_prime)?
 }
 
 e_second = {
-      e_second ~ "and" ~ e_third
-    | e_third
+    e_third ~ e_second_prime
+}
+
+e_second_prime = _{
+    ("and" ~ e_third ~ e_second_prime)?
 }
 
 e_third = {
-      e_third ~ "::" ~ e_fourth
-    | e_fourth
+    e_fourth ~ e_third_prime
+}
+
+e_third_prime = _{
+    ("::" ~ e_fourth ~ e_third_prime)?
 }
 
 e_fourth = {
-      e_fourth ~ "==" ~ e_fifth
-    | e_fifth 
+    e_fifth ~ e_fourth_prime
+}
+
+e_fourth_prime = _{
+    ("==" ~ e_fifth ~ e_fourth_prime)?
 }
 
 e_fifth = {
