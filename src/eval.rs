@@ -5,7 +5,6 @@
 use crate::parser;
 use parser::Expression;
 use parser::Expression::*;
-use parser::Definition;
 use parser::Variable;
 use std::collections::HashMap;
 
@@ -29,11 +28,15 @@ fn eval_under(e: &Expression, ctx: &Context) -> Result<Expression, &'static str>
             ctx.get(v).ok_or("Variable not defined.").clone().cloned()
         }
         Nil => Ok(Nil),
-        Let(d, ex) => {
-            let bound_value = eval_under(&*d.value, ctx)?;
+        Let(var, bound_expression, body) => {
+            // let x = e1 in e2
+            // Evaluate e1 in the current context,
+            let bound_value = eval_under(&*bound_expression, ctx)?;
+            // Add x = e1 into a new inner context,
             let mut inner_ctx = ctx.clone();
-            inner_ctx.insert(d.name.clone(), bound_value);
-            eval_under(ex, &inner_ctx)
+            inner_ctx.insert(var.clone(), bound_value);
+            // And evaluate e2!
+            eval_under(body, &inner_ctx)
         }
         Not(e) => match eval_under(e, ctx)? {
             True => Ok(False),
@@ -161,13 +164,13 @@ fn bVar(s: &str) -> Box<Expression> {
 
 #[test]
 fn test_eval_basic_let() {
-    let expr = Let(Definition{name: *bVariable("x"),
-                              value: bTrue()},
+    let expr = Let(*bVariable("x"),
+                   bTrue(),
                    bVar("x"));
     assert_eq!(eval(&expr), Ok(True));
 
-    let expr = Let(Definition{name: *bVariable("x"),
-                              value: bTrue()},
+    let expr = Let(*bVariable("x"),
+                   bTrue(),
                    bNot(bVar("x")));
     assert_eq!(eval(&expr), Ok(False));
 }
