@@ -206,9 +206,9 @@ fn parse_e_fifth(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_eq(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
+    let (remainder, e1) = parse_e_fourth(input)?;
     let (remainder, _) = tag("==")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
+    let (remainder, e2) = parse_e_fifth(remainder)?;
     let eq = Expression::Eq(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
@@ -218,9 +218,9 @@ fn parse_e_fourth(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_cons(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
+    let (remainder, e1) = parse_e_third(input)?;
     let (remainder, _) = tag("::")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
+    let (remainder, e2) = parse_e_fourth(remainder)?;
     let eq = Expression::Cons(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
@@ -230,9 +230,9 @@ fn parse_e_third(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_and(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
+    let (remainder, e1) = parse_e_second(input)?;
     let (remainder, _) = tag("and")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
+    let (remainder, e2) = parse_e_third(remainder)?;
     let eq = Expression::And(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
@@ -242,9 +242,9 @@ fn parse_e_second(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_add(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
+    let (remainder, e1) = parse_e_first(input)?;
     let (remainder, _) = tag("+")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
+    let (remainder, e2) = parse_e_second(remainder)?;
     let eq = Expression::Add(Box::new(e1), Box::new(e2));
     Ok((remainder, eq))
 }
@@ -254,17 +254,17 @@ fn parse_e_first(input: &str) -> IResult<&str, Expression> {
 }
 
 fn parse_apply_1(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
+    let (remainder, e1) = parse_e_zeroth(input)?;
     let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
+    let (remainder, e2) = parse_e_first(remainder)?;
     let (remainder, _) = tag(")")(remainder)?;
     let a = Expression::Apply(Box::new(e1), Box::new(e2));
     Ok((remainder, a))
 }
 
 fn parse_apply_2(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
+    let (remainder, e1) = parse_e_zeroth(input)?;
+    let (remainder, e2) = parse_e_first(remainder)?;
     let a = Expression::Apply(Box::new(e1), Box::new(e2));
     Ok((remainder, a))
 }

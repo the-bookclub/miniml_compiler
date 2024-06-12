@@ -80,18 +80,18 @@ s := forall a . t
 ```
 e_top    := (e_top)
           | e_zeroth
-e_zeroth := e_1 (e_2)
-          | e_1 e_2
+e_zeroth := e_zeroth (e_first)
+          | e_zeroth e_first
           | e_first
-e_first  := e_1 + e_2
+e_first  := e_first + e_second
           | e_second
-e_second := e_1 and e_2
+e_second := e_second and e_third
           | e_third
-e_third  := e_1 :: e_2
+e_third  := e_third :: e_fourth
           | e_fourth
-e_fourth := e_1 == e_2
+e_fourth := e_fourth == e_fifth
           | e_fifth
-e_fifth  := fn x . e
+e_fifth  := fn x . e_top
           | e_null
 e_null   := x
           | c_bool
