@@ -1,0 +1,65 @@
+file = _{ SOI ~ e_top ~ EOI }
+
+e_top = {
+      "(" ~ e_top ~ ")"
+    | e_zeroth
+}
+
+e_zeroth = {
+      e_zeroth ~ "(" ~ e_first ~ ")"
+    | e_zeroth ~ e_first
+    | e_first 
+}
+
+e_first = {
+      e_first ~ "+" ~ e_second
+    | e_second
+}
+
+e_second = {
+      e_second ~ "and" ~ e_third
+    | e_third
+}
+
+e_third = {
+      e_third ~ "::" ~ e_fourth
+    | e_fourth
+}
+
+e_fourth = {
+      e_fourth ~ "==" ~ e_fifth
+    | e_fifth 
+}
+
+e_fifth = {
+      "fn" ~ x ~ "." ~ e_fifth
+    | e_null
+}
+
+e_null = {
+      x
+    | c_bool
+    | c_num
+    | "let" ~ x ~ "=" ~ e_top ~ "in" ~ e_top
+    | "not" ~ "(" ~ e_top ~ ")"
+    | "if" ~ e_top ~ "then" ~ e_top ~ "else" ~ e_top
+    | "succ" ~ "(" ~ e_top ~ ")"
+    | "<" ~ e_top ~ "," ~ e_top ~ ">"
+    | "fst" ~ "(" ~ e_top ~ ")"
+    | "snd" ~ "(" ~ e_top ~ ")"
+    | "nil"
+    | "hd" ~ "(" ~ e_top ~ ")"
+    | "tl" ~ "(" ~ e_top ~ ")"
+    | "pred" ~ "(" ~ e_top ~ ")"
+}
+
+x = {
+    (ASCII_ALPHA | "_") ~ ASCII_ALPHANUMERIC*
+}
+c_bool = {
+      "true"
+    | "false"
+}
+c_num = {
+    ASCII_DIGIT+
+}
