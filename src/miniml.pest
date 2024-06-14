@@ -1,6 +1,6 @@
 file = _{ SOI ~ e_top ~ EOI }
 
-e_top = {
+e_top = _{
       "(" ~ e_top ~ ")"
     | e_zeroth
 }
@@ -9,11 +9,11 @@ e_zeroth = {
     e_first ~ e_zeroth_prime
 }
 
-e_zeroth_prime = _{
+e_zeroth_prime = {
     (e_zeroth_param ~ e_zeroth_prime)?
 }
 
-e_zeroth_param = {
+e_zeroth_param = _{
       "(" ~ e_first ~ ")"
     | e_first
 }
@@ -22,7 +22,7 @@ e_first = {
     e_second ~ e_first_prime
 }
 
-e_first_prime = _{
+e_first_prime = {
     ("+" ~ e_second ~ e_first_prime)?
 }
 
@@ -30,7 +30,7 @@ e_second = {
     e_third ~ e_second_prime
 }
 
-e_second_prime = _{
+e_second_prime = {
     ("and" ~ e_third ~ e_second_prime)?
 }
 
@@ -38,7 +38,7 @@ e_third = {
     e_fourth ~ e_third_prime
 }
 
-e_third_prime = _{
+e_third_prime = {
     ("::" ~ e_fourth ~ e_third_prime)?
 }
 
@@ -46,31 +46,46 @@ e_fourth = {
     e_fifth ~ e_fourth_prime
 }
 
-e_fourth_prime = _{
+e_fourth_prime = {
     ("==" ~ e_fifth ~ e_fourth_prime)?
 }
 
-e_fifth = {
-      "fn" ~ x ~ "." ~ e_fifth
+e_fifth = _{
+      fn_stmt
     | e_null
 }
 
-e_null = {
-      x
+fn_stmt = { "fn" ~ x ~ "." ~ e_fifth }
+
+e_null = _{
+      var_stmt
     | c_bool
     | c_num
-    | "let" ~ x ~ "=" ~ e_top ~ "in" ~ e_top
-    | "not" ~ "(" ~ e_top ~ ")"
-    | "if" ~ e_top ~ "then" ~ e_top ~ "else" ~ e_top
-    | "succ" ~ "(" ~ e_top ~ ")"
-    | "<" ~ e_top ~ "," ~ e_top ~ ">"
-    | "fst" ~ "(" ~ e_top ~ ")"
-    | "snd" ~ "(" ~ e_top ~ ")"
-    | "nil"
-    | "hd" ~ "(" ~ e_top ~ ")"
-    | "tl" ~ "(" ~ e_top ~ ")"
-    | "pred" ~ "(" ~ e_top ~ ")"
+    | let_stmt
+    | not_stmt
+    | if_stmt
+    | succ
+    | pair
+    | fst
+    | snd
+    | nil
+    | hd
+    | tl
+    | pred
 }
+
+var_stmt = { x }
+let_stmt = { "let" ~ x ~ "=" ~ e_top ~ "in" ~ e_top }
+not_stmt = { "not" ~ "(" ~ e_top ~ ")" }
+if_stmt = { "if" ~ e_top ~ "then" ~ e_top ~ "else" ~ e_top }
+succ = { "succ" ~ "(" ~ e_top ~ ")" }
+pair = { "<" ~ e_top ~ "," ~ e_top ~ ">" }
+fst = { "fst" ~ "(" ~ e_top ~ ")" }
+snd = { "snd" ~ "(" ~ e_top ~ ")" }
+nil = { "nil" }
+hd = { "hd" ~ "(" ~ e_top ~ ")" }
+tl = { "tl" ~ "(" ~ e_top ~ ")" }
+pred = { "pred" ~ "(" ~ e_top ~ ")" }
 
 x = {
     (ASCII_ALPHA | "_") ~ ASCII_ALPHANUMERIC*
