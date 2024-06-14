@@ -20,14 +20,16 @@ pub fn bIf(c: Box<Expression>, yes: Box<Expression>, no: Box<Expression>) -> Box
 }
 
 pub fn bVariable(s: &str) -> Box<Variable> {
-    Box::new(Variable {
-        ident: s.to_string(),
-    })
+    Box::new(newVariable(s))
 }
 pub fn bVar(s: &str) -> Box<Expression> {
-    Box::new(Var(Variable {
+    Box::new(Var(newVariable(s)))
+}
+
+pub fn newVariable(s: &str) -> Variable {
+    Variable {
         ident: s.to_string(),
-    }))
+    }
 }
 
 pub fn bAdd(l: Box<Expression>, r: Box<Expression>) -> Box<Expression> {
@@ -52,9 +54,7 @@ pub fn bLet(v: Box<Variable>, def_expr: Box<Expression>, body: Box<Expression>) 
 }
 pub fn bFn(s: &str, body: Box<Expression>) -> Box<Expression> {
     Box::new(Fn(
-        Variable {
-            ident: s.to_string(),
-        },
+        newVariable(s),
         body,
     ))
 }
