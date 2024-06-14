@@ -170,58 +170,45 @@ fn transform_e_rule(input: Pair<Rule>, op: PartialExpressionOperator) -> Result<
     let e_left_transformed = transform_parse_output(e_left)?;
 
     let e_right_prime = data.next().unwrap();
-    let e_right_prime_transformed = transform_parse_output_partial(e_right_prime, op)?;
+    transform_parse_output_partial(
+        e_left_transformed, e_right_prime, op)
 
-    resolve_partial_expression(e_left_transformed, e_right_prime_transformed)
-}
-
-fn resolve_partial_expression(
-    e_left: Expression,
-    e_right_partial: TransformResult,
-) -> Result<Expression> {
-    match e_right_partial {
-        TransformResult::Empty => {
-            return Ok(e_left);
-        }
-        TransformResult::PartialExpression(op, expression, TR) => {
-            let boxed_e_left = Box::new(e_left);
-            let boxed_e_right = Box::new(expression);
-            match op {
-                PartialExpressionOperator::Apply => {
-                    return Ok(Expression::Apply(boxed_e_left, boxed_e_right))
-                }
-                PartialExpressionOperator::Add => {
-                    return Ok(Expression::Add(boxed_e_left, boxed_e_right))
-                }
-                PartialExpressionOperator::And => {
-                    return Ok(Expression::And(boxed_e_left, boxed_e_right))
-                }
-                PartialExpressionOperator::Cons => {
-                    return Ok(Expression::Cons(boxed_e_left, boxed_e_right))
-                }
-                PartialExpressionOperator::Equals => {
-                    return Ok(Expression::Eq(boxed_e_left, boxed_e_right))
-                }
-            }
-        }
-    }
 }
 
 fn transform_parse_output_partial(
+    left: Expression,
     input: Pair<Rule>,
     op: PartialExpressionOperator,
-) -> Result<TransformResult> {
+) -> Result<Expression> {
     let mut data = input.into_inner();
     if data.len() == 0 {
-        return Ok(TransformResult::Empty);
+        return Ok(left)
     }
+
     let expression = transform_parse_output(data.next().unwrap())?;
-    let prime = transform_parse_output_partial(data.next().unwrap(), op.clone())?;
-    Ok(TransformResult::PartialExpression(
-        op,
-        expression,
-        Box::new(prime),
-    ))
+
+    let left_boxed = Box::new(left);
+    let exp_boxed = Box::new(expression);
+
+    let complete_left = match op {
+        PartialExpressionOperator::Apply => {
+            Expression::Apply(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::Add => {
+            Expression::Add(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::And => {
+            Expression::And(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::Cons => {
+            Expression::Cons(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::Equals => {
+            Expression::Eq(left_boxed, exp_boxed)
+        }
+    };
+
+    transform_parse_output_partial(complete_left, data.next().unwrap(), op.clone())
 }
 
 #[test]
@@ -234,5 +221,18 @@ fn test_add() {
     assert_eq!(
         parser("1+2").unwrap(),
         Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+    );
+}
+
+#[test]
+fn test_double_add() {
+    assert_eq!(
+        parser("1+2+3").unwrap(),
+        Expression::Add(
+            Box::new(
+                Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+            ), 
+            Box::new(Expression::Num(3))
+        )
     );
 }
