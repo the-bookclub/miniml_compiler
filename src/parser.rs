@@ -1,5 +1,5 @@
 use anyhow::Result;
-use pest::iterators::{Pair, Pairs};
+use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -39,11 +39,6 @@ pub struct Variable {
     pub ident: String,
 }
 
-enum TransformResult {
-    PartialExpression(PartialExpressionOperator, Expression, Box<TransformResult>),
-    Empty,
-}
-
 #[derive(Clone)]
 enum PartialExpressionOperator {
     Apply,
@@ -53,7 +48,7 @@ enum PartialExpressionOperator {
     Equals,
 }
 
-fn parser(input: &str) -> Result<Expression> {
+pub fn parser(input: &str) -> Result<Expression> {
     let file = MiniMLParser::parse(Rule::file, input)
         .expect("Bad parse")
         .next()
@@ -95,65 +90,65 @@ fn transform_parse_output(input: Pair<Rule>) -> Result<Expression> {
                     let e2 = transform_parse_output(data.next().unwrap())?;
                     Ok(Expression::Let(v, Box::new(e1), Box::new(e2)))
                 }
-                _ => panic!()
+                _ => panic!(),
             }
-        },
+        }
         Rule::not_stmt => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Not(Box::new(e)))
-        },
+        }
         Rule::if_stmt => {
             let mut data = input.into_inner();
             let e1 = transform_parse_output(data.next().unwrap())?;
             let e2 = transform_parse_output(data.next().unwrap())?;
             let e3 = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::If(Box::new(e1), Box::new(e2), Box::new(e3)))
-        },
+        }
         Rule::succ => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Succ(Box::new(e)))
-        },
+        }
         Rule::pair => {
             let mut data = input.into_inner();
             let e1 = transform_parse_output(data.next().unwrap())?;
             let e2 = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Pair(Box::new(e1), Box::new(e2)))
-        },
+        }
         Rule::fst => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Fst(Box::new(e)))
-        },
+        }
         Rule::snd => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Snd(Box::new(e)))
-        },
+        }
         Rule::nil => Ok(Expression::Nil),
         Rule::hd => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Hd(Box::new(e)))
-        },
+        }
         Rule::tl => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Tl(Box::new(e)))
-        },
+        }
         Rule::pred => {
             let mut data = input.into_inner();
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Pred(Box::new(e)))
-        },
+        }
         Rule::fn_stmt => {
             let mut data = input.into_inner();
             let var = transform_variable(data.next().unwrap())?;
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Fn(var, Box::new(e)))
         }
-        _ => todo!()
+        _ => todo!(),
     }
 }
 
@@ -162,7 +157,7 @@ fn transform_variable(input: Pair<Rule>) -> Result<Variable> {
         Rule::x => Ok(Variable {
             ident: input.as_span().as_str().to_string(),
         }),
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -172,9 +167,7 @@ fn transform_e_rule(input: Pair<Rule>, op: PartialExpressionOperator) -> Result<
     let e_left_transformed = transform_parse_output(e_left)?;
 
     let e_right_prime = data.next().unwrap();
-    transform_parse_output_partial(
-        e_left_transformed, e_right_prime, op)
-
+    transform_parse_output_partial(e_left_transformed, e_right_prime, op)
 }
 
 fn transform_parse_output_partial(
@@ -184,7 +177,7 @@ fn transform_parse_output_partial(
 ) -> Result<Expression> {
     let mut data = input.into_inner();
     if data.len() == 0 {
-        return Ok(left)
+        return Ok(left);
     }
 
     let expression = transform_parse_output(data.next().unwrap())?;
@@ -193,21 +186,11 @@ fn transform_parse_output_partial(
     let exp_boxed = Box::new(expression);
 
     let complete_left = match op {
-        PartialExpressionOperator::Apply => {
-            Expression::Apply(left_boxed, exp_boxed)
-        }
-        PartialExpressionOperator::Add => {
-            Expression::Add(left_boxed, exp_boxed)
-        }
-        PartialExpressionOperator::And => {
-            Expression::And(left_boxed, exp_boxed)
-        }
-        PartialExpressionOperator::Cons => {
-            Expression::Cons(left_boxed, exp_boxed)
-        }
-        PartialExpressionOperator::Equals => {
-            Expression::Eq(left_boxed, exp_boxed)
-        }
+        PartialExpressionOperator::Apply => Expression::Apply(left_boxed, exp_boxed),
+        PartialExpressionOperator::Add => Expression::Add(left_boxed, exp_boxed),
+        PartialExpressionOperator::And => Expression::And(left_boxed, exp_boxed),
+        PartialExpressionOperator::Cons => Expression::Cons(left_boxed, exp_boxed),
+        PartialExpressionOperator::Equals => Expression::Eq(left_boxed, exp_boxed),
     };
 
     transform_parse_output_partial(complete_left, data.next().unwrap(), op.clone())
@@ -237,9 +220,10 @@ fn test_double_add() {
     assert_eq!(
         parser("1 + 2 + 3").unwrap(),
         Expression::Add(
-            Box::new(
-                Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
-            ), 
+            Box::new(Expression::Add(
+                Box::new(Expression::Num(1)),
+                Box::new(Expression::Num(2))
+            )),
             Box::new(Expression::Num(3))
         )
     );
@@ -258,9 +242,10 @@ fn test_double_and() {
     assert_eq!(
         parser("1 and 2 and 3").unwrap(),
         Expression::And(
-            Box::new(
-                Expression::And(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
-            ), 
+            Box::new(Expression::And(
+                Box::new(Expression::Num(1)),
+                Box::new(Expression::Num(2))
+            )),
             Box::new(Expression::Num(3))
         )
     );
@@ -278,8 +263,12 @@ fn test_fn() {
 fn test_double_fn() {
     assert_eq!(
         parser("1 ( 2 ) ( 3 )").unwrap(),
-        Expression::Apply(Box::new(Expression::Apply(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))),
-        Box::new(Expression::Num(3)))
+        Expression::Apply(
+            Box::new(Expression::Apply(
+                Box::new(Expression::Num(1)),
+                Box::new(Expression::Num(2))
+            )),
+            Box::new(Expression::Num(3))
+        )
     );
 }
-

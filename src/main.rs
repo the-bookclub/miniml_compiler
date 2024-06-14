@@ -1,7 +1,7 @@
+mod eval;
+mod exprs;
 mod parser;
 mod pprint;
-mod exprs;
-mod eval;
 
 fn main() {
     println!("Hello, world!");
