@@ -1,11 +1,11 @@
-use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::character::complete::{alpha1, alphanumeric1, digit1};
-use nom::combinator::{recognize, value};
-use nom::multi::many0_count;
-use nom::sequence::pair;
-use nom::IResult;
-use nom::Parser;
+use anyhow::Result;
+use pest::iterators::{Pair, Pairs};
+use pest::Parser;
+use pest_derive::Parser;
+
+#[derive(Parser)]
+#[grammar = "miniml.pest"]
+struct MiniMLParser;
 
 #[derive(Clone, PartialEq, Debug)]
 enum Expression {
@@ -37,265 +37,241 @@ struct Variable {
     ident: String,
 }
 
-fn parser(input: &str) -> IResult<&str, Expression> {
-    parse_e_top(input)
+enum TransformResult {
+    PartialExpression(PartialExpressionOperator, Expression, Box<TransformResult>),
+    Empty,
 }
 
-fn parse_variable(input: &str) -> IResult<&str, Variable> {
-    // x = [a-zA-Z_][a-zA-Z0-9]*
-    let (remainder, s) = recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0_count(alt((alphanumeric1, tag("_")))),
-    ))
-    .parse(input)?;
-    let v = Variable {
-        ident: s.to_string(),
+#[derive(Clone)]
+enum PartialExpressionOperator {
+    Apply,
+    Add,
+    And,
+    Cons,
+    Equals,
+}
+
+fn parser(input: &str) -> Result<Expression> {
+    let file = MiniMLParser::parse(Rule::file, input)
+        .expect("Bad parse")
+        .next()
+        .unwrap();
+
+    println!("{:?}", file);
+    println!("");
+
+    transform_parse_output(file)
+}
+
+fn transform_parse_output(input: Pair<Rule>) -> Result<Expression> {
+    println!("{:?}", input);
+    println!("");
+    match input.as_rule() {
+        Rule::var_stmt => {
+            let mut data = input.into_inner();
+            Ok(Expression::Var(transform_variable(data.next().unwrap())?))
+        }
+        Rule::c_bool => match input.as_span().as_str() {
+            "true" => Ok(Expression::True),
+            "false" => Ok(Expression::False),
+            _ => {
+                panic!();
+            }
+        },
+        Rule::c_num => Ok(Expression::Num(input.as_span().as_str().parse().unwrap())),
+        Rule::e_zeroth => transform_e_rule(input, PartialExpressionOperator::Apply),
+        Rule::e_first => transform_e_rule(input, PartialExpressionOperator::Add),
+        Rule::e_second => transform_e_rule(input, PartialExpressionOperator::And),
+        Rule::e_third => transform_e_rule(input, PartialExpressionOperator::Cons),
+        Rule::e_fourth => transform_e_rule(input, PartialExpressionOperator::Equals),
+        Rule::let_stmt => {
+            let mut data = input.into_inner();
+            let variable = transform_parse_output(data.next().unwrap())?;
+            match variable {
+                Expression::Var(v) => {
+                    let e1 = transform_parse_output(data.next().unwrap())?;
+                    let e2 = transform_parse_output(data.next().unwrap())?;
+                    Ok(Expression::Let(v, Box::new(e1), Box::new(e2)))
+                }
+                _ => panic!()
+            }
+        },
+        Rule::not_stmt => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Not(Box::new(e)))
+        },
+        Rule::if_stmt => {
+            let mut data = input.into_inner();
+            let e1 = transform_parse_output(data.next().unwrap())?;
+            let e2 = transform_parse_output(data.next().unwrap())?;
+            let e3 = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::If(Box::new(e1), Box::new(e2), Box::new(e3)))
+        },
+        Rule::succ => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Succ(Box::new(e)))
+        },
+        Rule::pair => {
+            let mut data = input.into_inner();
+            let e1 = transform_parse_output(data.next().unwrap())?;
+            let e2 = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Pair(Box::new(e1), Box::new(e2)))
+        },
+        Rule::fst => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Fst(Box::new(e)))
+        },
+        Rule::snd => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Snd(Box::new(e)))
+        },
+        Rule::nil => Ok(Expression::Nil),
+        Rule::hd => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Hd(Box::new(e)))
+        },
+        Rule::tl => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Tl(Box::new(e)))
+        },
+        Rule::pred => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Pred(Box::new(e)))
+        },
+        Rule::fn_stmt => {
+            let mut data = input.into_inner();
+            let var = transform_variable(data.next().unwrap())?;
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::Fn(var, Box::new(e)))
+        }
+        _ => todo!()
+    }
+}
+
+fn transform_variable(input: Pair<Rule>) -> Result<Variable> {
+    match input.as_rule() {
+        Rule::x => Ok(Variable {
+            ident: input.as_span().as_str().to_string(),
+        }),
+        _ => panic!()
+    }
+}
+
+fn transform_e_rule(input: Pair<Rule>, op: PartialExpressionOperator) -> Result<Expression> {
+    let mut data = input.into_inner();
+    let e_left = data.next().unwrap();
+    let e_left_transformed = transform_parse_output(e_left)?;
+
+    let e_right_prime = data.next().unwrap();
+    transform_parse_output_partial(
+        e_left_transformed, e_right_prime, op)
+
+}
+
+fn transform_parse_output_partial(
+    left: Expression,
+    input: Pair<Rule>,
+    op: PartialExpressionOperator,
+) -> Result<Expression> {
+    let mut data = input.into_inner();
+    if data.len() == 0 {
+        return Ok(left)
+    }
+
+    let expression = transform_parse_output(data.next().unwrap())?;
+
+    let left_boxed = Box::new(left);
+    let exp_boxed = Box::new(expression);
+
+    let complete_left = match op {
+        PartialExpressionOperator::Apply => {
+            Expression::Apply(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::Add => {
+            Expression::Add(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::And => {
+            Expression::And(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::Cons => {
+            Expression::Cons(left_boxed, exp_boxed)
+        }
+        PartialExpressionOperator::Equals => {
+            Expression::Eq(left_boxed, exp_boxed)
+        }
     };
-    Ok((remainder, v))
-}
 
-fn parse_e_variable(input: &str) -> IResult<&str, Expression> {
-    let (remainder, v) = parse_variable(input)?;
-    let e = Expression::Var(v);
-    Ok((remainder, e))
-}
-
-fn parse_bool(input: &str) -> IResult<&str, Expression> {
-    alt((
-        value(Expression::True, tag("true")),
-        value(Expression::False, tag("false")),
-    ))(input)
-}
-
-fn parse_num(input: &str) -> IResult<&str, Expression> {
-    let (remainder, num) = digit1(input)?;
-    let n: u32 = num.parse().unwrap();
-    let e = Expression::Num(n);
-    Ok((remainder, e))
-}
-
-fn parse_nil(input: &str) -> IResult<&str, Expression> {
-    value(Expression::Nil, tag("nil"))(input)
-}
-
-fn parse_let(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("let")(input)?;
-    let (remainder, var) = parse_variable(input)?;
-    let (remainder, _) = tag("=")(remainder)?;
-    let (remainder, e1) = parse_e_top(remainder)?;
-    let (remainder, _) = tag("in")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let l = Expression::Let(var, Box::new(e1), Box::new(e2));
-    Ok((remainder, l))
-}
-
-fn parse_not(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("not")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let n = Expression::Not(Box::new(e));
-    Ok((remainder, n))
-}
-
-fn parse_if(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("if")(input)?;
-    let (remainder, cond) = parse_e_top(remainder)?;
-    let (remainder, _) = tag("then")(remainder)?;
-    let (remainder, e_true) = parse_e_top(remainder)?;
-    let (remainder, _) = tag("else")(remainder)?;
-    let (remainder, e_false) = parse_e_top(remainder)?;
-    let i = Expression::If(Box::new(cond), Box::new(e_true), Box::new(e_false));
-    Ok((remainder, i))
-}
-
-fn parse_succ(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("succ")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let s = Expression::Succ(Box::new(e));
-    Ok((remainder, s))
-}
-
-fn parse_pair(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("<")(input)?;
-    let (remainder, e1) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(",")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let p = Expression::Pair(Box::new(e1), Box::new(e2));
-    Ok((remainder, p))
-}
-
-fn parse_fst(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("fst")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let f = Expression::Fst(Box::new(e));
-    Ok((remainder, f))
-}
-
-fn parse_snd(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("snd")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let f = Expression::Snd(Box::new(e));
-    Ok((remainder, f))
-}
-
-fn parse_hd(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("hd")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let h = Expression::Hd(Box::new(e));
-    Ok((remainder, h))
-}
-
-fn parse_tl(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("tl")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let t = Expression::Tl(Box::new(e));
-    Ok((remainder, t))
-}
-
-fn parse_pred(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("pred")(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let p = Expression::Succ(Box::new(e));
-    Ok((remainder, p))
-}
-
-fn parse_e_null(input: &str) -> IResult<&str, Expression> {
-    alt((
-        parse_e_variable,
-        parse_bool,
-        parse_num,
-        parse_let,
-        parse_not,
-        parse_if,
-        parse_succ,
-        parse_pair,
-        parse_fst,
-        parse_snd,
-        parse_nil,
-        parse_hd,
-        parse_tl,
-        parse_pred,
-    ))(input)
-}
-
-fn parse_fn(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("fn")(input)?;
-    let (remainder, v) = parse_variable(remainder)?;
-    let (remainder, _) = tag(".")(remainder)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let f = Expression::Fn(v, Box::new(e));
-    Ok((remainder, f))
-}
-
-fn parse_e_fifth(input: &str) -> IResult<&str, Expression> {
-    alt((parse_fn, parse_e_null))(input)
-}
-
-fn parse_eq(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, _) = tag("==")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::Eq(Box::new(e1), Box::new(e2));
-    Ok((remainder, eq))
-}
-
-fn parse_e_fourth(input: &str) -> IResult<&str, Expression> {
-    alt((parse_eq, parse_e_fifth))(input)
-}
-
-fn parse_cons(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, _) = tag("::")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::Cons(Box::new(e1), Box::new(e2));
-    Ok((remainder, eq))
-}
-
-fn parse_e_third(input: &str) -> IResult<&str, Expression> {
-    alt((parse_cons, parse_e_fourth))(input)
-}
-
-fn parse_and(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, _) = tag("and")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::And(Box::new(e1), Box::new(e2));
-    Ok((remainder, eq))
-}
-
-fn parse_e_second(input: &str) -> IResult<&str, Expression> {
-    alt((parse_and, parse_e_third))(input)
-}
-
-fn parse_add(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, _) = tag("+")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let eq = Expression::Add(Box::new(e1), Box::new(e2));
-    Ok((remainder, eq))
-}
-
-fn parse_e_first(input: &str) -> IResult<&str, Expression> {
-    alt((parse_add, parse_e_second))(input)
-}
-
-fn parse_apply_1(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, _) = tag("(")(remainder)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    let a = Expression::Apply(Box::new(e1), Box::new(e2));
-    Ok((remainder, a))
-}
-
-fn parse_apply_2(input: &str) -> IResult<&str, Expression> {
-    let (remainder, e1) = parse_e_top(input)?;
-    let (remainder, e2) = parse_e_top(remainder)?;
-    let a = Expression::Apply(Box::new(e1), Box::new(e2));
-    Ok((remainder, a))
-}
-
-fn parse_e_zeroth(input: &str) -> IResult<&str, Expression> {
-    alt((parse_apply_1, parse_apply_2, parse_e_first))(input)
-}
-
-fn parse_e_top_bracket(input: &str) -> IResult<&str, Expression> {
-    let (remainder, _) = tag("(")(input)?;
-    let (remainder, e) = parse_e_top(remainder)?;
-    let (remainder, _) = tag(")")(remainder)?;
-    Ok((remainder, e))
-}
-
-fn parse_e_top(input: &str) -> IResult<&str, Expression> {
-    alt((parse_e_top_bracket, parse_e_zeroth))(input)
+    transform_parse_output_partial(complete_left, data.next().unwrap(), op.clone())
 }
 
 #[test]
 fn test_num() {
-    assert_eq!(parse_num("1"), Ok(("", Expression::Num(1))));
+    assert_eq!(parser("1").unwrap(), Expression::Num(1));
 }
 
 #[test]
 fn test_add() {
     assert_eq!(
-        parse_add("1+2"),
-        Ok((
-            "",
-            Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
-        ))
+        parser("1+2").unwrap(),
+        Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
     );
 }
+
+#[test]
+fn test_double_add() {
+    assert_eq!(
+        parser("1+2+3").unwrap(),
+        Expression::Add(
+            Box::new(
+                Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+            ), 
+            Box::new(Expression::Num(3))
+        )
+    );
+}
+
+#[test]
+fn test_and() {
+    assert_eq!(
+        parser("1and2").unwrap(),
+        Expression::And(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+    );
+}
+
+#[test]
+fn test_double_and() {
+    assert_eq!(
+        parser("1and2and3").unwrap(),
+        Expression::And(
+            Box::new(
+                Expression::And(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+            ), 
+            Box::new(Expression::Num(3))
+        )
+    );
+}
+
+#[test]
+fn test_fn() {
+    assert_eq!(
+        parser("1(2)").unwrap(),
+        Expression::Apply(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
+    );
+}
+
+#[test]
+fn test_double_fn() {
+    assert_eq!(
+        parser("1(2)(3)").unwrap(),
+        Expression::Apply(Box::new(Expression::Apply(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))),
+        Box::new(Expression::Num(3)))
+    );
+}
+
