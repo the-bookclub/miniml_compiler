@@ -87,13 +87,15 @@ hd = { "hd" ~ "(" ~ e_top ~ ")" }
 tl = { "tl" ~ "(" ~ e_top ~ ")" }
 pred = { "pred" ~ "(" ~ e_top ~ ")" }
 
-x = {
+x = @{
     (ASCII_ALPHA | "_") ~ ASCII_ALPHANUMERIC*
 }
 c_bool = {
       "true"
     | "false"
 }
-c_num = {
+c_num = @{
     ASCII_DIGIT+
 }
+
+WHITESPACE = _{ " " | "\r" | "\n" }
