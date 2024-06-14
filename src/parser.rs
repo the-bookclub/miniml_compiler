@@ -217,9 +217,14 @@ fn test_num() {
 }
 
 #[test]
+fn test_multi_num() {
+    assert_eq!(parser("123").unwrap(), Expression::Num(123));
+}
+
+#[test]
 fn test_add() {
     assert_eq!(
-        parser("1+2").unwrap(),
+        parser("1 + 2").unwrap(),
         Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
     );
 }
@@ -227,7 +232,7 @@ fn test_add() {
 #[test]
 fn test_double_add() {
     assert_eq!(
-        parser("1+2+3").unwrap(),
+        parser("1 + 2 + 3").unwrap(),
         Expression::Add(
             Box::new(
                 Expression::Add(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
@@ -240,7 +245,7 @@ fn test_double_add() {
 #[test]
 fn test_and() {
     assert_eq!(
-        parser("1and2").unwrap(),
+        parser("1 and 2").unwrap(),
         Expression::And(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
     );
 }
@@ -248,7 +253,7 @@ fn test_and() {
 #[test]
 fn test_double_and() {
     assert_eq!(
-        parser("1and2and3").unwrap(),
+        parser("1 and 2 and 3").unwrap(),
         Expression::And(
             Box::new(
                 Expression::And(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
@@ -261,7 +266,7 @@ fn test_double_and() {
 #[test]
 fn test_fn() {
     assert_eq!(
-        parser("1(2)").unwrap(),
+        parser("1 ( 2 )").unwrap(),
         Expression::Apply(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))
     );
 }
@@ -269,7 +274,7 @@ fn test_fn() {
 #[test]
 fn test_double_fn() {
     assert_eq!(
-        parser("1(2)(3)").unwrap(),
+        parser("1 ( 2 ) ( 3 )").unwrap(),
         Expression::Apply(Box::new(Expression::Apply(Box::new(Expression::Num(1)), Box::new(Expression::Num(2)))),
         Box::new(Expression::Num(3)))
     );
