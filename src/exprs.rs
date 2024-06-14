@@ -2,22 +2,32 @@
 
 use crate::parser;
 use parser::Expression;
-use parser::Variable;
 use parser::Expression::*;
+use parser::Variable;
 
 // region Boxed constructors for convenient building of expressions.
-pub fn bTrue() -> Box<Expression> { Box::new(True) }
-pub fn bFalse() -> Box<Expression>  { Box::new(False) }
-pub fn bNot(b: Box<Expression>) -> Box<Expression> { Box::new(Not(b)) }
+pub fn bTrue() -> Box<Expression> {
+    Box::new(True)
+}
+pub fn bFalse() -> Box<Expression> {
+    Box::new(False)
+}
+pub fn bNot(b: Box<Expression>) -> Box<Expression> {
+    Box::new(Not(b))
+}
 pub fn bIf(c: Box<Expression>, yes: Box<Expression>, no: Box<Expression>) -> Box<Expression> {
     Box::new(If(c, yes, no))
 }
 
 pub fn bVariable(s: &str) -> Box<Variable> {
-    Box::new(Variable{ident: s.to_string()})
+    Box::new(Variable {
+        ident: s.to_string(),
+    })
 }
 pub fn bVar(s: &str) -> Box<Expression> {
-    Box::new(Var(Variable{ident: s.to_string()}))
+    Box::new(Var(Variable {
+        ident: s.to_string(),
+    }))
 }
 
 pub fn bAdd(l: Box<Expression>, r: Box<Expression>) -> Box<Expression> {
@@ -41,8 +51,12 @@ pub fn bLet(v: Box<Variable>, def_expr: Box<Expression>, body: Box<Expression>) 
     Box::new(Let(*v, def_expr, body))
 }
 pub fn bFn(s: &str, body: Box<Expression>) -> Box<Expression> {
-    Box::new(Fn(Variable{ ident: s.to_string() },
-                body))
+    Box::new(Fn(
+        Variable {
+            ident: s.to_string(),
+        },
+        body,
+    ))
 }
 pub fn bApply(l: Box<Expression>, r: Box<Expression>) -> Box<Expression> {
     Box::new(Apply(l, r))
@@ -127,5 +141,5 @@ pub fn expr_needs_paren(e: &Expression) -> bool {
 
 /// Does this expression have subexpressions?
 pub fn is_simple(e: &Expression) -> bool {
-   expression_arity(e) == 0
+    expression_arity(e) == 0
 }
