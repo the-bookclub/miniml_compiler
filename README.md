@@ -107,6 +107,7 @@ e_null   := x
           | hd(e_top)
           | tl(e_top)
           | pred(e_top)
+          | iszero(e_top)
 
 x = [a-zA-Z_][a-zA-Z1-9]*
 c_bool = true | false

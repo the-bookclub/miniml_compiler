@@ -32,6 +32,7 @@ pub enum Expression {
 
     Add(Box<Expression>, Box<Expression>),
     Apply(Box<Expression>, Box<Expression>),
+    IsZero(Box<Expression>),
 }
 
 #[derive(Clone, PartialEq, Debug, Eq, Hash)]
@@ -148,7 +149,12 @@ fn transform_parse_output(input: Pair<Rule>) -> Result<Expression> {
             let e = transform_parse_output(data.next().unwrap())?;
             Ok(Expression::Fn(var, Box::new(e)))
         }
-        _ => todo!(),
+        Rule::iszero => {
+            let mut data = input.into_inner();
+            let e = transform_parse_output(data.next().unwrap())?;
+            Ok(Expression::IsZero(Box::new(e)))
+        }
+        _ => panic!()
     }
 }
 

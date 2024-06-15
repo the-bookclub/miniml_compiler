@@ -72,6 +72,7 @@ e_null = _{
     | hd
     | tl
     | pred
+    | iszero
 }
 
 var_stmt = { x }
@@ -86,6 +87,7 @@ nil = { "nil" }
 hd = { "hd" ~ "(" ~ e_top ~ ")" }
 tl = { "tl" ~ "(" ~ e_top ~ ")" }
 pred = { "pred" ~ "(" ~ e_top ~ ")" }
+iszero = { "iszero" ~ "(" ~ e_top ~ ")" }
 
 x = @{
     (ASCII_ALPHA | "_") ~ ASCII_ALPHANUMERIC*

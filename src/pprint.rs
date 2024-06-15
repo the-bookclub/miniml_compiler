@@ -34,6 +34,7 @@ pub fn pprint(e: &Expression) -> String {
         Snd(e) => pprint_single_arity_call("snd", e),
         Hd(e) => pprint_single_arity_call("hd", e),
         Tl(e) => pprint_single_arity_call("tl", e),
+        IsZero(e) => pprint_single_arity_call("iszero", e),
         Pair(e1, e2) => format!("<{}, {}>", pprint(e1), pprint(e2)),
         Fn(v, e) => format!("fn {}. {}", v.ident, pprint(e)),
         Eq(e1, e2) => format!("{} == {}", pprint_parenthesize(e1), pprint_parenthesize(e2)),
