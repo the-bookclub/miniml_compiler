@@ -206,7 +206,6 @@ fn test_multi_num() {
     assert_eq!(parser("123").unwrap(), Expression::Num(123));
 }
 
-#[ignore]
 #[test]
 fn test_add() {
     assert_eq!(
